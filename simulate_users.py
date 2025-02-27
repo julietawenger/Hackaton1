@@ -1,5 +1,10 @@
 import pandas as pd
+import numpy as np
+import faker
+fake = faker.Faker()
+import random
 
+#### LET'S START WITH FAKE DATA ###
 # Simulate a small book database
 book_data = [
     {"title": "To Kill a Mockingbird", "author": "Harper Lee", "genre": ["Fiction", "Classic"], "ISBN": "9780061120084", "rating": 4.8},
@@ -29,33 +34,18 @@ df_genre = exploded_df.reset_index(drop=True)
 # Display the grouped data
 #print(df_genre)
 
-{
-    "name": "John",
-    "age": 25,
-    "preferences": ["action", "thriller"],
-    "watch_history": [{"movie": "Inception", "genre": "sci-fi", "rating": 5}]
-}
 
+#We need to create a list of all unique genres:
 
-"""
-First, we need to create a list of all unique genres:
-"""
 unique_genres = set()
 for genres in book_df['genre']:
     unique_genres.update(genres)
 
-
-import numpy as np
-import faker
-fake = faker.Faker()
-import random
-
+##### NOW WE CAN CREATE SOME FAKE PEOPLE ###
  
 
 def random_book(df, genre):
-    """Given a dataframe and a genre, 
-    Returns:
-    title, ISBN
+    """Given a dataframe and a genre, returns: title, ISBN.
     """
     genre_books = df[df["genre"] == genre]
     if genre_books.empty:
@@ -66,7 +56,7 @@ def random_book(df, genre):
 
 
 def random_person(df):
-    
+    """"Given a database that has to have these columns: 'genre', 'ISBN', 'rating', 'book', returns a fake user history data."""
     # Creates a random list of a person's favorites genres
     preferences = random.sample(list(unique_genres), random.randint(1,4))
     
@@ -74,13 +64,17 @@ def random_person(df):
     book_history = []
 
     for i in range(random.randint(1,5)):
-        genre = random.choice(preferences)
-        book_title, book_isbn = random_book(df, genre)
-        rating = df.loc[df['ISBN'] == book_isbn, 'rating'].values[0]
+        genre = random.choice(preferences) # Chooses one of the favorite genres
+        book_title, book_isbn = random_book(df, genre) # Returns book title and ISBN of a book that genre
+        rating = df.loc[df['ISBN'] == book_isbn, 'rating'].values[0] # Returns the rating of that book
         book_history.append({"book": book_title, "genre": genre, "rating": int(rating) })
 
-    dict ={"name": fake.name(), "age": np.random.randint(12,85), "preferences": preferences, "book_history": book_history}
-    return dict
+    # One fake user data
+    dictionary ={"name": fake.name(), "age": np.random.randint(12,85), "preferences": preferences, "book_history": book_history}
+    return dictionary
 print(random_person(df_genre))
 
+
+def user_data(n):
+    return dict([random_person(df_genre) for i in range(n)])
 
