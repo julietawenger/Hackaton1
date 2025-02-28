@@ -24,7 +24,7 @@ book_df = pd.DataFrame(book_data)
 
 
 # Display the book DataFrame
-#print(book_df)
+# print(book_df)
 
 exploded_df = book_df.explode('genre')
 
@@ -34,12 +34,6 @@ df_genre = exploded_df.reset_index(drop=True)
 # Display the grouped data
 #print(df_genre)
 
-
-#We need to create a list of all unique genres:
-
-unique_genres = set()
-for genres in book_df['genre']:
-    unique_genres.update(genres)
 
 ##### NOW WE CAN CREATE SOME FAKE PEOPLE ###
  
@@ -57,6 +51,14 @@ def random_book(df, genre):
 
 def random_person(df):
     """"Given a database that has to have these columns: 'genre', 'ISBN', 'rating', 'book', returns a fake user history data."""
+    #We need to create a list of all unique genres:
+
+    # Creates a set of unique genres
+    unique_genres = set()
+    for genres in book_df['genre']:
+        unique_genres.update(genres)
+
+    
     # Creates a random list of a person's favorites genres
     preferences = random.sample(list(unique_genres), random.randint(1,4))
     
@@ -66,15 +68,20 @@ def random_person(df):
     for i in range(random.randint(1,5)):
         genre = random.choice(preferences) # Chooses one of the favorite genres
         book_title, book_isbn = random_book(df, genre) # Returns book title and ISBN of a book that genre
-        rating = df.loc[df['ISBN'] == book_isbn, 'rating'].values[0] # Returns the rating of that book
-        book_history.append({"book": book_title, "genre": genre, "rating": int(rating) })
+        rating = max(np.random.normal(df.loc[df['ISBN'] == book_isbn, 'rating'].values[0],0.2),5) # Returns a rating of the book from a normal dist. centered on the book's rating.
+        book_history.append({"book": book_title, "genre": genre, "rating": round(rating,1) })
 
     # One fake user data
     dictionary ={"name": fake.name(), "age": np.random.randint(12,85), "preferences": preferences, "book_history": book_history}
     return dictionary
-print(random_person(df_genre))
 
 
 def user_data(n):
-    return dict([random_person(df_genre) for i in range(n)])
+    """Creates a dataframe of length n."""
+    df =  pd.DataFrame({i: random_person(df_genre) for i in range(n)}).T
+    df["ID"] = df.index
+    return df
 
+
+synthetic_database = user_data(300)
+#print(synthetic_database)
