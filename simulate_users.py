@@ -1,56 +1,43 @@
+#%%
 import pandas as pd
 import numpy as np
 import faker
 fake = faker.Faker()
 import random
+import ast
 
-#### LET'S START WITH FAKE DATA ###
-# Simulate a small book database
-book_data = [
-    {"title": "To Kill a Mockingbird", "author": "Harper Lee", "genre": ["Fiction", "Classic"], "ISBN": "9780061120084", "rating": 4.8},
-    {"title": "1984", "author": "George Orwell", "genre": ["Dystopian", "Science Fiction"], "ISBN": "9780451524935", "rating": 4.7},
-    {"title": "The Great Gatsby", "author": "F. Scott Fitzgerald", "genre": ["Fiction", "Classic"], "ISBN": "9780743273565", "rating": 4.6},
-    {"title": "Harry Potter and the Sorcerer's Stone", "author": "J.K. Rowling", "genre": ["Fantasy", "Adventure"], "ISBN": "9780590353427", "rating": 4.9},
-    {"title": "Pride and Prejudice", "author": "Jane Austen", "genre": ["Romance", "Classic"], "ISBN": "9780141439518", "rating": 4.8},
-    {"title": "The Lord of the Rings", "author": "J.R.R. Tolkien", "genre": ["Fantasy", "Adventure"], "ISBN": "9780618640157", "rating": 4.9},
-    {"title": "The Catcher in the Rye", "author": "J.D. Salinger", "genre": ["Fiction", "Classic"], "ISBN": "9780316769488", "rating": 4.3},
-    {"title": "The Hobbit", "author": "J.R.R. Tolkien", "genre": ["Fantasy", "Adventure"], "ISBN": "9780345339683", "rating": 4.8},
-    {"title": "Moby-Dick", "author": "Herman Melville", "genre": ["Fiction", "Adventure"], "ISBN": "9781503280786", "rating": 4.1},
-    {"title": "War and Peace", "author": "Leo Tolstoy", "genre": ["Historical", "Classic"], "ISBN": "9781400079988", "rating": 4.7}
-]
+# Fist I load the Database
+book_data = pd.read_csv(r"Cleaned Data/Amazon_books_cleaned.csv")
 
-# Convert to DataFrame
+# Convert to DataFrame and clean
 book_df = pd.DataFrame(book_data)
+book_df = book_df.dropna(axis=1, thresh=len(book_df)*2/3)
+book_df = book_df.dropna(subset=['genre'])
 
+# I need this line to read the genre column as a list
+book_df['genre'] = book_df['genre'].apply(lambda x: ast.literal_eval(x) if isinstance(x, str) and x.startswith('[') else x)
 
-# Display the book DataFrame
-# print(book_df)
-
+# Now I can explode by genre. This way I get a new row for every genre listed per book.
 exploded_df = book_df.explode('genre')
+exploded_df = exploded_df.reset_index(drop=True)
 
-# Now, group by genre
-df_genre = exploded_df.reset_index(drop=True)
-
-# Display the grouped data
-#print(df_genre)
-
+#
 
 ##### NOW WE CAN CREATE SOME FAKE PEOPLE ###
- 
+
 
 def random_book(df, genre):
-    """Given a dataframe and a genre, returns: title, ISBN.
-    """
+    """Given a dataframe and a genre, returns: title, ID. """
     genre_books = df[df["genre"] == genre]
     if genre_books.empty:
         return None, None  # In case no books are found for the genre
     
     selected_book = genre_books.sample(1).iloc[0]  # Get a random book
-    return selected_book["title"], selected_book["ISBN"]
+    return selected_book["title"], selected_book["id"]
 
 
 def random_person(df):
-    """"Given a database that has to have these columns: 'genre', 'ISBN', 'rating', 'book', returns a fake user history data."""
+    """"Given a database that has to have these columns: 'genre', 'id', 'rating', 'book', returns a fake user history data."""
     #We need to create a list of all unique genres:
 
     # Creates a set of unique genres
@@ -67,8 +54,9 @@ def random_person(df):
 
     for i in range(random.randint(1,5)):
         genre = random.choice(preferences) # Chooses one of the favorite genres
-        book_title, book_isbn = random_book(df, genre) # Returns book title and ISBN of a book that genre
-        rating = max(np.random.normal(df.loc[df['ISBN'] == book_isbn, 'rating'].values[0],0.2),5) # Returns a rating of the book from a normal dist. centered on the book's rating.
+        book_title, book_id= random_book(df, genre) # Returns book title and ID of a book that genre
+        extract_rating = float(df.loc[df['id'] == book_id, 'rating'].values[0])
+        rating = max(np.random.normal(extract_rating,0.2),5) # Returns a rating of the book from a normal dist. centered on the book's rating.
         book_history.append({"book": book_title, "genre": genre, "rating": round(rating,1) })
 
     # One fake user data
@@ -78,10 +66,8 @@ def random_person(df):
 
 def user_data(n):
     """Creates a dataframe of length n."""
-    df =  pd.DataFrame({i: random_person(df_genre) for i in range(n)}).T
+    df =  pd.DataFrame({i: random_person(exploded_df) for i in range(n)}).T
     df["ID"] = df.index
     return df
 
-
-synthetic_database = user_data(300)
-#print(synthetic_database)
+print(user_data(1))

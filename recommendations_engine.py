@@ -1,60 +1,85 @@
-""" 2. Build the Recommendation Engine:
 
-Generate personalized recommendations by:
-
-    Filtering books from a dataset that match the user’s preferences.
-    Ranking books based on user ratings or genre overlap.
-
-Simulate recommendations like: “Since you liked Inception, you might enjoy Interstellar.”
-
-    SciPy Application: Apply correlation metrics (e.g., Pearson correlation using scipy.stats.pearsonr) to compare the ratings given to movies by different users. This can help recommend movies based on similar user preferences or past ratings.
-
-Additionally, use k-means clustering from scipy.cluster.vq to cluster users into groups based on their genre preferences or ratings, and then recommend the top-rated movies within each cluster.
-"""
-
-from simulate_users import book_df as df
+from simulate_users import book_df 
+from simulate_users import exploded_df
 from simulate_users import user_data
 from scipy.stats import pearsonr
-from scipy.cluster.vq import kmeans, vq
 import numpy as np
 import pandas as pd
 
-synthetic_database = user_data(1000)
+user_df = user_data(5000)
 
-# First I need to access the user. Let's imagine this is user 20.
-#user = synthetic_database.loc(20)
-
-user_preferences = synthetic_database.iloc[20]["preferences"]
-
-# I need to filter the dataframe based on the user's preferences 
-
-filtered_movies = df[df['genre'].apply(lambda x: any(g in x for g in user_preferences))]
-filtered_movies = filtered_movies.sort_values(by = 'rating', ascending=False)
-
-
-### HASTA ACA LO QUE HACE ES FILTRAR DF POR LOS GENEROS QUE LE GUSTA AL USUARIO Y ORDENAR POR RATING
-
-#### DESDE ACA ES BALAGAN PARA ENCONTRAR LA CORRELACION DE PEARSON
+def recommend_by_total_rating(user_df, book_df, target_user_ID):
+    
+    # First I need to access the user preferences
+    user_preferences = user_df.iloc[target_user_ID]["preferences"]
+    # I need to filter the dataframe based on the user's preferences 
+    filtered_books = book_df[book_df['genre'].apply(lambda x: any(g in x for g in user_preferences))]
+    # Sort by rating
+    filtered_books = filtered_books.sort_values(by = 'rating', ascending=False)
+    # Creates a list of the books read by the user
+    reader_book_list = [i['book'] for i in user_df.iloc[target_user_ID]["book_history"]]
+    # Remove books that the user has already read
+    recommended_books = filtered_books[~filtered_books['title'].isin(reader_book_list)]
+    # Return top 5 recommendations
+    return list(recommended_books.head()["title"])     
+    
 
 
 def book_hist_to_df(df, row):
-# ESTA FUNCION AGARRA LA BASE DE DATOS DE USUARIO Y UNA FILA Y ME DEVUELVE UNA BASE DE DATOS DE BOOK HISTORY
+    """This function takes a row from the users database and returns the users reading history in a DataFrame."""    
     book_ratings = []
     for book in df.iloc[row]["book_history"]:
-            book_ratings.append({"user_id": row["ID"], "book": book["book"], "rating": book["rating"]})
+            book_ratings.append({"user_id": row, "book": book["book"], "rating": book["rating"]})
     return pd.DataFrame(book_ratings)
 
+def user_book_rating_df(user_df):
+    """This function concatenates the book_hist_to_df to all rows in the users database."""    
+    ratings_df_list = []
+    for i in user_df.index:
+        ratings_df_list.append(book_hist_to_df(user_df,i))
+    ratings_df = pd.concat(ratings_df_list, ignore_index= True) 
+    return ratings_df
 
-# AHORA QUIERO CONCATENAR PARA TODA LA BASE DE DATOS DE USUARIOS
-ratings_df_list = df.apply(book_hist_to_df, axis=1).dropna().tolist()
-ratings_df = pd.concat(ratings_df_list, ignore_index=True) # no funciona
-print(ratings_df)
-#ratings_df = ratings_df.groupby(["user_id", "book"], as_index=False).agg({"rating": "mean"})
+#If a user rated the same book multiple times, take the average rating.
+ratings_df = user_book_rating_df(user_df).groupby(["user_id", "book"], as_index=False).agg({"rating": "mean"})
 
 
-def user_similarity(user1_ratings, user2_ratings):
-    return pearsonr(user1_ratings, user2_ratings)[0]
+# Rating matrix has the size books x users and if they read the book, the value is the rating. Otherwise it's 0.
+rating_matrix = ratings_df.pivot(index="user_id", columns="book", values="rating")
+rating_matrix = rating_matrix.fillna(0)  # Fill missing values with 0
 
 
 
-#print(ratings_df)
+def find_similar_users(user_id, rating_matrix):
+    """This function finds users who correlate to the target user."""
+    similarities = {}
+    target_user_ratings = rating_matrix.loc[user_id]
+    
+    for other_user in rating_matrix.index:
+        if other_user != user_id:
+            corr, _ = pearsonr(target_user_ratings, rating_matrix.loc[other_user])
+            similarities[other_user] = corr
+
+    return sorted(similarities.items(), key=lambda x: x[1], reverse=True) 
+
+def recommend_books_by_users(user_id, rating_matrix, top_n=5):
+    similar_users = find_similar_users(user_id, rating_matrix)[:5]
+    similar_users_ids = [user[0] for user in similar_users]
+    
+    # Get books rated highly by similar users
+    similar_users_ratings = rating_matrix.loc[similar_users_ids]
+    avg_ratings = similar_users_ratings.mean().sort_values(ascending=False)
+
+    # Exclude books already rated by the target user
+    user_rated_books = set(rating_matrix.loc[user_id][rating_matrix.loc[user_id] > 0].index)
+    recommendations = avg_ratings.drop(user_rated_books).head(top_n)
+
+    return [i[0] for i in recommendations.items()]
+
+
+
+
+recommended_books = recommend_books_by_users(20, rating_matrix)
+recommended_books_2 = recommend_by_total_rating(user_df, book_df, 20)
+print(user_df.iloc[20])
+print(recommended_books, recommended_books_2)
