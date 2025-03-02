@@ -36,7 +36,7 @@ def random_book(df, genre):
     return selected_book["title"], selected_book["id"]
 
 
-def random_person(df):
+def random_person(df, max_book_amount = 5):
     """"Given a database that has to have these columns: 'genre', 'id', 'rating', 'book', returns a fake user history data."""
     #We need to create a list of all unique genres:
 
@@ -52,29 +52,30 @@ def random_person(df):
     # "book_history": [{"book": "Harry Potter", "author": 'J.K. Rowling' ,"genre": "Adventure", "rating": 5}]
     book_history = []
     seen_books = set()
-    for i in range(random.randint(1,5)):
+    for i in range(random.randint(1,max_book_amount)):
         genre = random.choice(preferences) # Chooses one of the favorite genres
         book_title, book_id= random_book(df, genre) # Returns book title and ID of a book that genre
         if book_id in seen_books:  # Skip if book is already in history
             continue      
         seen_books.add(book_id)
-        
+    
         extract_rating = float(df.loc[df['id'] == book_id, 'rating'].values[0])
         rating =max(0, min(np.random.normal(extract_rating, 0.2), 5)) # Returns a rating of the book from a normal dist. centered on the book's rating.
         author = df.loc[df['id'] == book_id, 'author'].values[0]
-        book_history.append({"book": book_title, "author": author,"genre": genre, "rating": round(rating,1) })
+
+        book_history.append({"book": book_title, "author": author,"genre": genre, "rating": round(rating,1), "genre": genre})
         
     # One fake user data
     dictionary ={"name": fake.name(), "age": np.random.randint(12,85), "preferences": preferences, "book_history": book_history}
     return dictionary
 
-def user_data(n):
+def user_data(n, max_book_amount = 5):
     """Creates a dataframe of length n."""
-    df =  pd.DataFrame({i: random_person(exploded_df) for i in range(n)}).T
+    df =  pd.DataFrame({i: random_person(exploded_df, max_book_amount) for i in range(n)}).T
     df["ID"] = df.index
     return df
 
 
 # This creates users and saves them in a file
-users = user_data(20)
+users = user_data(500, 100)
 users.to_csv('users.csv')
