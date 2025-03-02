@@ -2,35 +2,127 @@ import csv
 import os
 import random
 
-# 1) Import your recommendation engine code or relevant functions
-# For example:
+# If you have a separate recommendation engine, import it here.
+# Example:
 from recommendations_engine import recommend_by_total_rating
-# Or whatever function you use to recommend
 
 ########################################
-# HELPER FUNCTIONS FOR BOOKS DB
+# HELPER FUNCTIONS: Managing the users.csv
 ########################################
+
+def get_next_zero(file_path="users.csv"):
+    """
+    Auto-increment the '0' column by scanning existing rows for the max value in '0'.
+    If file doesn't exist yet, return 1.
+    """
+    if not os.path.isfile(file_path):
+        return 1
+    max_val = 0
+    with open(file_path, mode='r', newline='', encoding='utf-8') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            try:
+                zero_int = int(row["0"])  # Convert the '0' column to int
+                if zero_int > max_val:
+                    max_val = zero_int
+            except (ValueError, KeyError):
+                continue
+    return max_val + 1
+
+def get_next_id(file_path="users.csv"):
+    """
+    Determine the next unique user 'ID' by scanning existing rows in users.csv.
+    If file doesn't exist yet, return 1.
+    """
+    if not os.path.isfile(file_path):
+        return 1
+    max_id = 0
+    with open(file_path, mode='r', newline='', encoding='utf-8') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            try:
+                current_id = int(row["ID"])
+                if current_id > max_id:
+                    max_id = current_id
+            except (ValueError, KeyError):
+                continue
+    return max_id + 1
+
+def user_exists(user_id, user_name, file_path="users.csv"):
+    """
+    Returns True if a row in users.csv has ID == user_id and name == user_name.
+    """
+    if not os.path.isfile(file_path):
+        return False
+    with open(file_path, mode='r', newline='', encoding='utf-8') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            # Compare ID column and case-insensitive name
+            if row["ID"] == str(user_id) and row["name"].strip().lower() == user_name.strip().lower():
+                return True
+    return False
+
+def get_user_row(user_id, file_path="users.csv"):
+    """
+    Return the entire row (as a dict) for the user with ID == user_id, else None.
+    """
+    if not os.path.isfile(file_path):
+        return None
+    with open(file_path, mode='r', newline='', encoding='utf-8') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            if row["ID"] == str(user_id):
+                return row
+    return None
+
+def overwrite_user_row(updated_row, file_path="users.csv"):
+    """
+    Rewrite the CSV, replacing the row that has the same 'ID' as updated_row['ID'].
+    """
+    if not os.path.isfile(file_path):
+        return
+
+    with open(file_path, mode='r', newline='', encoding='utf-8') as file:
+        reader = csv.DictReader(file)
+        fieldnames = reader.fieldnames
+        all_rows = list(reader)
+
+    # Find the matching row and replace it
+    for i, row in enumerate(all_rows):
+        if row["ID"] == updated_row["ID"]:
+            all_rows[i] = updated_row
+            break
+
+    # Write all rows back
+    with open(file_path, mode='w', newline='', encoding='utf-8') as file:
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(all_rows)
+
+########################################
+# HELPER FUNCTIONS: Managing Amazon_books_cleaned.csv
+########################################
+
 def book_exists_in_db(title, author, books_file="Amazon_books_cleaned.csv"):
     """
-    Return True if there's a row in Amazon_books_cleaned.csv with the same title and author.
+    Return True if there's a row in books_file with the same title+author (case-insensitive).
     """
     if not os.path.isfile(books_file):
         return False
     with open(books_file, mode='r', newline='', encoding='utf-8') as file:
         reader = csv.DictReader(file)
         for row in reader:
-            if row["title"].strip().lower() == title.strip().lower() and \
-               row["author"].strip().lower() == author.strip().lower():
+            if row["title"].strip().lower() == title.strip().lower() \
+               and row["author"].strip().lower() == author.strip().lower():
                 return True
     return False
 
 def get_next_book_id(books_file="Amazon_books_cleaned.csv"):
     """
-    Determine the next book id by scanning existing rows in Amazon_books_cleaned.csv.
-    We'll assume 'id' is a numeric column.
+    Return the next numeric id for a new book by scanning the existing 'id' column.
     """
     if not os.path.isfile(books_file):
-        return 1  # If no file yet, start at ID=1
+        return 1
     max_id = 0
     with open(books_file, mode='r', newline='', encoding='utf-8') as file:
         reader = csv.DictReader(file)
@@ -45,13 +137,10 @@ def get_next_book_id(books_file="Amazon_books_cleaned.csv"):
 
 def add_book_to_db(title, author, user_rating, user_genre, books_file="Amazon_books_cleaned.csv"):
     """
-    Add a brand-new book to Amazon_books_cleaned.csv using the rating & genre.
-    We'll initialize reviews_count=1 for new books.
+    Add a brand-new book with user_rating, user_genre. Initialize reviews_count=1.
     """
     reviews_count_val = 1
     new_id = get_next_book_id(books_file)
-
-    # We'll store the genre as a list in string form, e.g. "['Fantasy']"
     genre_list_str = str([user_genre])
 
     file_exists = os.path.isfile(books_file)
@@ -60,7 +149,6 @@ def add_book_to_db(title, author, user_rating, user_genre, books_file="Amazon_bo
         writer = csv.DictWriter(file, fieldnames=fieldnames)
         if not file_exists:
             writer.writeheader()
-
         writer.writerow({
             "id": new_id,
             "title": title,
@@ -69,79 +157,7 @@ def add_book_to_db(title, author, user_rating, user_genre, books_file="Amazon_bo
             "reviews_count": reviews_count_val,
             "genre": genre_list_str
         })
-
     return new_id
-
-########################################
-# USER-RELATED FUNCTIONS
-########################################
-
-def get_next_user_id(file_path="users.csv"):
-    """Determine the next user ID by reading the existing CSV file."""
-    if not os.path.isfile(file_path):
-        return 1
-    max_id = 0
-    with open(file_path, mode='r', newline='', encoding='utf-8') as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            try:
-                user_id = int(row["UserID"])
-                if user_id > max_id:
-                    max_id = user_id
-            except (ValueError, KeyError):
-                continue
-    return max_id + 1
-
-def user_exists(user_id, name, file_path="users.csv"):
-    """Check if a user ID and name exist in the CSV file."""
-    if not os.path.isfile(file_path):
-        return False
-    with open(file_path, mode='r', newline='', encoding='utf-8') as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            # Compare user ID and name in a case-insensitive manner
-            if row["UserID"] == user_id and row["Name"].strip().lower() == name.strip().lower():
-                return True
-    return False
-
-def get_user_row(user_id, file_path="users.csv"):
-    """
-    Retrieve the entire row (as a dictionary) for the given user_id from users.csv.
-    Return None if not found.
-    """
-    if not os.path.isfile(file_path):
-        return None
-    with open(file_path, mode='r', newline='', encoding='utf-8') as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            if row["UserID"] == user_id:
-                return row
-    return None
-
-def overwrite_user_row(updated_row, file_path="users.csv"):
-    """
-    Given an updated row (dictionary) for a user, rewrite the entire CSV with this row replaced.
-    """
-    if not os.path.isfile(file_path):
-        return
-
-    # Read all existing rows into memory
-    with open(file_path, mode='r', newline='', encoding='utf-8') as file:
-        reader = csv.DictReader(file)
-        fieldnames = reader.fieldnames
-        all_rows = list(reader)
-
-    # Modify the matching row
-    for i, row in enumerate(all_rows):
-        if row["UserID"] == updated_row["UserID"]:
-            all_rows[i] = updated_row
-            break
-
-    # Rewrite the entire file
-    with open(file_path, mode='w', newline='', encoding='utf-8') as file:
-        writer = csv.DictWriter(file, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(all_rows)
 
 ########################################
 # MENU ACTIONS
@@ -149,183 +165,98 @@ def overwrite_user_row(updated_row, file_path="users.csv"):
 
 def recommend_books_for_user(user_id):
     """
-    Use your recommendations_engine.py to get recommended books for this user.
-    We'll load user_df and exploded_df or whichever frames you need, then call the function.
+    Example: call your recommendation function from recommendations_engine.
     """
     import pandas as pd
-    # For example, let's say your engine expects user_df and book_df, 
-    # just as in your code. We'll do a quick load:
-    user_df = pd.read_csv("users.csv")  
-    # Maybe you need an 'exploded_df' or something from Amazon_books_cleaned.csv
+    user_df = pd.read_csv("users.csv")
     book_df = pd.read_csv("Amazon_books_cleaned.csv")
-    # If you want to parse 'genre' as a list, do so. We'll assume your code can handle it or you do:
-    # ...
-    # Now call your recommendation function
-    # Example:
-    recommended_titles, recommended_authors = recommend_by_total_rating(user_df, book_df, int(user_id))
-    print("\nRecommended Books for You:\n")
+
+    # Convert user_id to int if your engine uses integer IDs
+    user_id_int = int(user_id)
+
+    # Example call:
+    recommended_titles, recommended_authors = recommend_by_total_rating(user_df, book_df, user_id_int)
+
+    print("\nRecommended Books:\n")
     for t, a in zip(recommended_titles, recommended_authors):
         print(f" - {t} by {a}")
     print()
 
 def rate_a_book(user_id):
     """
-    Let the logged-in user add (rate) a single book. 
-    If it doesn't exist, create it. Then update the user's RatedBooks.
+    Let the logged-in user add (rate) a single book. If it's missing, add it to DB.
+    Then update their book_history in users.csv.
     """
     row = get_user_row(user_id)
     if not row:
-        print("User not found. Cannot rate a book.")
+        print("User not found in CSV. Can't rate.")
         return
 
-    # Prompt for book details
     book_title = input("Enter the book title you want to rate: ").strip()
     author = input("Enter the author for this book: ").strip()
 
-    # rating
     rating_input = input("Enter rating for this book (1-5): ").strip()
     try:
         rating_val = float(rating_input)
         if rating_val < 1 or rating_val > 5:
-            print("Rating must be between 1 and 5. Setting rating to 5 by default.")
+            print("Rating must be 1-5. Setting to 5.")
             rating_val = 5.0
     except ValueError:
-        print("Invalid rating. Setting rating to 5 by default.")
+        print("Invalid rating. Setting to 5.")
         rating_val = 5.0
 
-    # genre
     book_genre = input("Enter genre for this book: ").strip()
 
-    # If not in DB, add
-    if not book_exists_in_db(book_title, author, "Amazon_books_cleaned.csv"):
-        new_id = add_book_to_db(book_title, author, rating_val, book_genre, "Amazon_books_cleaned.csv")
-        print(f"Added new book '{book_title}' by {author} (ID={new_id}) to Amazon_books_cleaned.csv.")
+    # If not in DB, add it
+    if not book_exists_in_db(book_title, author):
+        new_book_id = add_book_to_db(book_title, author, rating_val, book_genre)
+        print(f"Added new book '{book_title}' by {author} (ID={new_book_id}).")
     else:
-        print("Book already exists in DB. We'll just record your rating in your read history.")
+        print("Book already in DB. We'll just record your rating in your read history.")
 
-    # Now add to user's read history
     import ast
-    # parse the existing RatedBooks
-    rated_books_str = row["RatedBooks"]
+    history_str = row["book_history"]
     try:
-        rated_books_list = ast.literal_eval(rated_books_str) if rated_books_str else []
+        history_list = ast.literal_eval(history_str) if history_str else []
     except:
-        rated_books_list = []
+        history_list = []
 
-    new_book_entry = {
+    new_entry = {
         "book": book_title,
         "author": author,
         "genre": book_genre,
         "rating": rating_val
     }
-    rated_books_list.append(new_book_entry)
+    history_list.append(new_entry)
 
-    # Update row
-    row["RatedBooks"] = str(rated_books_list)
-    overwrite_user_row(row)  # persist changes
-    print(f"'{book_title}' has been added to your read history with a rating of {rating_val}.")
+    row["book_history"] = str(history_list)
+    overwrite_user_row(row)
+    print(f"'{book_title}' added to your read history.")
 
 def surprise_me():
     """
-    Pick 3 random books from Amazon_books_cleaned.csv and show them.
+    Show 3 random books from Amazon_books_cleaned.csv.
     """
     if not os.path.isfile("Amazon_books_cleaned.csv"):
-        print("No books found in Amazon_books_cleaned.csv. Cannot surprise you yet!")
+        print("No books in DB.")
         return
 
-    # read all books
     import pandas as pd
     df = pd.read_csv("Amazon_books_cleaned.csv")
     if df.empty:
-        print("The books file is empty. No surprises available.")
+        print("No books found.")
         return
 
-    # If we have fewer than 3 books, show all
-    sample_size = min(3, len(df))
-    picks = df.sample(sample_size)
-
+    picks = df.sample(min(3, len(df)))
     print("\nSurprise Books:\n")
     for _, row in picks.iterrows():
         print(f" - {row['title']} by {row['author']} (ID={row['id']})")
     print()
 
-########################################
-# CREATE/LOGIN USER
-########################################
-
-def create_user():
-    name = input("Enter your name: ").strip()
-    age = input("Enter your age: ").strip()
-    genres_input = input("Enter your preferred genres (comma-separated): ")
-    preferred_genres = [g.strip() for g in genres_input.split(',') if g.strip()]
-    preferred_genres_str = str(preferred_genres)
-    
-    books_list = []
-    newly_added_books = []
-    
-    add_books = input("Would you like to add books you have read and their details (title, author, rating, genre)? (yes/no): ").strip().lower()
-    if add_books in ["yes", "y"]:
-        while True:
-            book_title = input("Enter book title (or press Enter to finish): ").strip()
-            if not book_title:
-                break
-
-            author = input("Enter author for this book: ").strip()
-            rating_input = input("Enter rating for this book (1-5): ").strip()
-            try:
-                rating_val = float(rating_input)
-                if rating_val < 1 or rating_val > 5:
-                    print("Rating must be between 1 and 5. Setting rating to 5 by default.")
-                    rating_val = 5.0
-            except ValueError:
-                print("Invalid rating. Setting rating to 5 by default.")
-                rating_val = 5.0
-
-            book_genre = input("Enter genre for this book: ").strip()
-
-            # If this book doesn't exist, add it
-            if not book_exists_in_db(book_title, author):
-                new_book_id = add_book_to_db(book_title, author, rating_val, book_genre)
-                newly_added_books.append((book_title, author, new_book_id))
-
-            # update local user read list
-            book_entry = {
-                "book": book_title,
-                "author": author,
-                "genre": book_genre,
-                "rating": rating_val
-            }
-            books_list.append(book_entry)
-
-    rated_books_str = str(books_list)
-    flag = 1
-    file_path = "users.csv"
-    user_id = str(get_next_user_id(file_path))  # make sure it's string for easy matching
-    file_exists = os.path.isfile(file_path)
-
-    with open(file_path, mode='a', newline='', encoding='utf-8') as file:
-        fieldnames = ["UserID", "Name", "Age", "PreferredGenres", "RatedBooks", "Flag"]
-        writer = csv.DictWriter(file, fieldnames=fieldnames)
-        if not file_exists:
-            writer.writeheader()
-        writer.writerow({
-            "UserID": user_id,
-            "Name": name,
-            "Age": age,
-            "PreferredGenres": preferred_genres_str,
-            "RatedBooks": rated_books_str,
-            "Flag": flag
-        })
-    
-    print(f"User '{name}' created successfully!")
-    print(f"Your user ID is {user_id}. You will need your user ID and name to log in.")
-    for book_title, author, new_id in newly_added_books:
-        print(f"Added new book '{book_title}' by {author} (ID={new_id}) to Amazon_books_cleaned.csv.")
-
 def logged_in_menu(user_id, user_name):
     """
-    Once the user is logged in, show them 4 menu options in a loop
-    until they pick '4' (log out).
+    Once the user is logged in, present the 4 main options:
+    1) recommend, 2) rate, 3) surprise, 4) logout.
     """
     while True:
         print("\n--- Logged In Menu ---")
@@ -333,6 +264,7 @@ def logged_in_menu(user_id, user_name):
         print("2) Rate a book")
         print("3) Surprise me")
         print("4) Log out")
+
         choice = input("Enter choice (1-4): ").strip()
         if choice == "1":
             recommend_books_for_user(user_id)
@@ -344,19 +276,89 @@ def logged_in_menu(user_id, user_name):
             print("Logging out. Hope to see you soon!")
             break
         else:
-            print("Invalid choice. Please select 1, 2, 3, or 4.")
+            print("Invalid choice. Select 1, 2, 3, or 4.")
+
+########################################
+# CREATE OR LOG IN USER
+########################################
+
+def create_user():
+    """
+    Create a new user row in users.csv with columns:
+    0,name,age,preferences,book_history,ID
+    The user logs in with the ID column.
+    """
+    name = input("Enter your name: ").strip()
+    age = input("Enter your age: ").strip()
+    prefs_inp = input("Enter your preferred genres (comma-separated): ")
+    prefs_list = [p.strip() for p in prefs_inp.split(',') if p.strip()]
+    prefs_str = str(prefs_list)
+
+    book_history_list = []
+    new_books_added = []
+
+    add_books = input("Would you like to add books you have read? (yes/no): ").strip().lower()
+    if add_books in ["yes", "y"]:
+        while True:
+            title = input("Enter book title (or press Enter to finish): ").strip()
+            if not title:
+                break
+            author = input("Enter author for this book: ").strip()
+            r_inp = input("Enter rating (1-5): ").strip()
+            try:
+                r_val = float(r_inp)
+                if r_val < 1 or r_val > 5:
+                    r_val = 5.0
+            except ValueError:
+                r_val = 5.0
+            g_inp = input("Enter genre for this book: ").strip()
+
+            if not book_exists_in_db(title, author):
+                new_bk_id = add_book_to_db(title, author, r_val, g_inp)
+                new_books_added.append((title, author, new_bk_id))
+
+            book_history_list.append({
+                "book": title,
+                "author": author,
+                "genre": g_inp,
+                "rating": r_val
+            })
+
+    zero_val = get_next_zero("users.csv")  # auto-increment for '0'
+    new_id = get_next_id("users.csv")      # unique user ID
+    b_history_str = str(book_history_list)
+
+    file_exists = os.path.isfile("users.csv")
+    with open("users.csv", mode='a', newline='', encoding='utf-8') as f:
+        fieldnames = ["0", "name", "age", "preferences", "book_history", "ID"]
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow({
+            "0": zero_val,
+            "name": name,
+            "age": age,
+            "preferences": prefs_str,
+            "book_history": b_history_str,
+            "ID": new_id
+        })
+
+    print(f"User '{name}' created successfully!")
+    print(f"Your user ID is {new_id}. Please use it (and your name) to log in.")
+    for t, a, bid in new_books_added:
+        print(f"Added new book '{t}' by {a} (ID={bid}) to Amazon_books_cleaned.csv.")
 
 def main():
     print("Welcome to The BibliOracle!")
     while True:
-        choice = input("Would you like to (1) Log in or (2) Create a new account? (Enter 1 or 2): ").strip()
+        choice = input("Would you like to (1) Log in or (2) Create a new account? ").strip()
         if choice == "1":
-            user_id = input("Enter your User ID: ").strip()
-            name = input("Enter your name: ").strip()
-            if user_exists(user_id, name):
-                print(f"Welcome back, {name}! (User ID: {user_id})")
-                # Present the user with the logged-in menu
-                logged_in_menu(user_id, name)
+            # The user logs in with ID column
+            user_id = input("Enter your ID: ").strip()
+            user_name = input("Enter your name: ").strip()
+            if user_exists(user_id, user_name):
+                print(f"Welcome back, {user_name}! (ID: {user_id})")
+                logged_in_menu(user_id, user_name)
                 break
             else:
                 print("ID either does not exist or is invalid. Please try again.")
