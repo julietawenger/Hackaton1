@@ -193,7 +193,11 @@ def recommend_books_for_user(user_id):
     user_id_int = int(user_id)
 
     try:
+<<<<<<< HEAD
         titles, authors = recommend_by_total_users(book_data, user_df, user_id_int)
+=======
+        titles, authors = recommend_books_by_users(book_data, user_df, user_id_int)
+>>>>>>> 1b4d8168df590c1809b116e0f06f30ae8e333293
     except KeyError as e:
         print(f"KeyError: {e}. Possibly your user ID is larger than user_df has rows.")
         print("In your engine code, you used .iloc[target_user_ID], so user_id must match row index!")
@@ -203,7 +207,27 @@ def recommend_books_for_user(user_id):
         print("No recommendations found (maybe user has read everything or no matching genres).")
         return
 
+<<<<<<< HEAD
     print("\nRecommended Books for You:\n")
+=======
+    print("\nOther users similar to you liked these titles:\n")
+    for t, a in zip(titles, authors):
+        print(f" - {t} by {a}")
+    print()
+
+    try:
+        titles, authors = recommend_by_total_rating(book_data, user_df, user_id_int)
+    except KeyError as e:
+        print(f"KeyError: {e}. Possibly your user ID is larger than user_df has rows.")
+        print("In your engine code, you used .iloc[target_user_ID], so user_id must match row index!")
+        return
+
+    if not titles:
+        print("No recommendations found (maybe user has read everything or no matching genres).")
+        return
+    
+    print("\nYou may also like these highly ranked titles, based on your preferred genres:\n")
+>>>>>>> 1b4d8168df590c1809b116e0f06f30ae8e333293
     for t, a in zip(titles, authors):
         print(f" - {t} by {a}")
     print()

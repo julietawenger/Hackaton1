@@ -55,9 +55,9 @@ def random_person(df, max_book_amount = 5):
     for i in range(random.randint(1,max_book_amount)):
         genre = random.choice(preferences) # Chooses one of the favorite genres
         book_title, book_id= random_book(df, genre) # Returns book title and ID of a book that genre
-        if book_id in seen_books:  # Skip if book is already in history
+        if book_title in seen_books:  # Skip if book is already in history
             continue      
-        seen_books.add(book_id)
+        seen_books.add(book_title)
     
         extract_rating = float(df.loc[df['id'] == book_id, 'rating'].values[0])
         rating =max(0, min(np.random.normal(extract_rating, 0.2), 5)) # Returns a rating of the book from a normal dist. centered on the book's rating.
