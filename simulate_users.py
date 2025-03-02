@@ -49,21 +49,26 @@ def random_person(df):
     # Creates a random list of a person's favorites genres
     preferences = random.sample(list(unique_genres), random.randint(1,4))
     
-    # "book_history": [{"book": "Harry Potter", "genre": "Adventure", "rating": 5}]
+    # "book_history": [{"book": "Harry Potter", "author": 'J.K. Rowling' ,"genre": "Adventure", "rating": 5}]
     book_history = []
-
+    seen_books = set()
     for i in range(random.randint(1,5)):
         genre = random.choice(preferences) # Chooses one of the favorite genres
         book_title, book_id= random_book(df, genre) # Returns book title and ID of a book that genre
+        if book_id in seen_books:  # Skip if book is already in history
+            continue      
+        seen_books.add(book_id)
+        
         extract_rating = float(df.loc[df['id'] == book_id, 'rating'].values[0])
-        rating = min(np.random.normal(extract_rating,0.2),5) # Returns a rating of the book from a normal dist. centered on the book's rating.
-        book_history.append({"book": book_title, "genre": genre, "rating": round(rating,1) })
-
+        rating =max(0, min(np.random.normal(extract_rating, 0.2), 5)) # Returns a rating of the book from a normal dist. centered on the book's rating.
+        author = df.loc[df['id'] == book_id, 'author'].values[0]
+        book_history.append({"book": book_title, "author": author,"genre": genre, "rating": round(rating,1) })
+        
     # One fake user data
     dictionary ={"name": fake.name(), "age": np.random.randint(12,85), "preferences": preferences, "book_history": book_history}
     return dictionary
 
-
+#%%
 def user_data(n):
     """Creates a dataframe of length n."""
     df =  pd.DataFrame({i: random_person(exploded_df) for i in range(n)}).T
@@ -72,5 +77,5 @@ def user_data(n):
 
 
 # This creates users and saves them in a file
-users = user_data(5000)
+users = user_data(20)
 users.to_csv('users.csv')
