@@ -35,7 +35,7 @@ def random_book(df, genre):
     selected_book = genre_books.sample(1).iloc[0]  # Get a random book
     return selected_book["title"], selected_book["id"]
 
-
+#%%
 def random_person(df):
     """"Given a database that has to have these columns: 'genre', 'id', 'rating', 'book', returns a fake user history data."""
     #We need to create a list of all unique genres:
@@ -56,7 +56,7 @@ def random_person(df):
         genre = random.choice(preferences) # Chooses one of the favorite genres
         book_title, book_id= random_book(df, genre) # Returns book title and ID of a book that genre
         extract_rating = float(df.loc[df['id'] == book_id, 'rating'].values[0])
-        rating = max(np.random.normal(extract_rating,0.2),5) # Returns a rating of the book from a normal dist. centered on the book's rating.
+        rating = min(np.random.normal(extract_rating,0.2),5) # Returns a rating of the book from a normal dist. centered on the book's rating.
         book_history.append({"book": book_title, "genre": genre, "rating": round(rating,1) })
 
     # One fake user data
