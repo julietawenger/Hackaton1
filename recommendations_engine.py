@@ -8,6 +8,9 @@ import pandas as pd
 
 user_df = user_data(5000)
 
+
+
+#%%
 def recommend_by_total_rating(user_df, book_df, target_user_ID):
     
     # First I need to access the user preferences
@@ -21,7 +24,7 @@ def recommend_by_total_rating(user_df, book_df, target_user_ID):
     # Remove books that the user has already read
     recommended_books = filtered_books[~filtered_books['title'].isin(reader_book_list)]
     # Return top 5 recommendations
-    return list(recommended_books.head()["title"])     
+    return list(recommended_books.head(5)["title"])     
     
 
 
@@ -74,9 +77,23 @@ def recommend_books_by_users(user_id, rating_matrix, top_n=5):
     user_rated_books = set(rating_matrix.loc[user_id][rating_matrix.loc[user_id] > 0].index)
     recommendations = avg_ratings.drop(user_rated_books).head(top_n)
 
-    return [i[0] for i in recommendations.items()]
+    # Keep only recommendations with correlations higher than zero.
+    recommendations = recommendations[recommendations > 0] 
 
+    return [i[0] for i in recommendations.items()],avg_ratings
+#%%
+user_id = 20
+top_n = 5
+similar_users = find_similar_users(user_id, rating_matrix)[:5]
+similar_users_ids = [user[0] for user in similar_users]
 
+# Get books rated highly by similar users
+similar_users_ratings = rating_matrix.loc[similar_users_ids]
+avg_ratings = similar_users_ratings.mean().sort_values(ascending=False)
+print([corr for book, corr in avg_ratings])
+    # Arreglar que si no tiene correlacion que no imprima
+#%%
+user_df.iloc[20]
 
 
 recommended_books = recommend_books_by_users(20, rating_matrix)

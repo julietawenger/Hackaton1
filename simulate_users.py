@@ -70,4 +70,3 @@ def user_data(n):
     df["ID"] = df.index
     return df
 
-print(user_data(1))
