@@ -6,7 +6,7 @@ from scipy.stats import pearsonr
 import numpy as np
 import pandas as pd
 
-user_df = user_data(5000)
+user_df = pd.read_csv('users.csv')
 
 
 

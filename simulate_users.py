@@ -70,3 +70,7 @@ def user_data(n):
     df["ID"] = df.index
     return df
 
+
+# This creates users and saves them in a file
+users = user_data(5000)
+users.to_csv('users.csv')
