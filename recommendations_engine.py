@@ -7,7 +7,7 @@ import ast
 
 user_df = pd.read_csv(r"users.csv")
 
-book_data = pd.read_csv(r"Cleaned Data/Amazon_books_cleaned.csv")
+book_data = pd.read_csv(r"Amazon_books_cleaned.csv")
 def clean_book_df(book_data):
 
     # Convert to DataFrame and clean
@@ -114,9 +114,5 @@ def recommend_books_by_users(book_df, user_df, user_id):
 
         return books, authors
 
-
-
-
-print(user_df.iloc[3]["preferences"])
-print(recommend_books_by_users(book_df, user_df, 3))
-print(recommend_by_total_rating(book_df, user_df,3))
+print(recommend_books_by_users(book_df, user_df, 20))
+print(recommend_by_total_rating(book_df, user_df, 20))
