@@ -1,23 +1,38 @@
 
-from simulate_users import book_df 
+
 from scipy.stats import pearsonr
 import numpy as np
 import pandas as pd
 import ast
 
-user_df = pd.read_csv(r'users.csv')
+user_df = pd.read_csv(r"users.csv")
+
+book_data = pd.read_csv(r"Cleaned Data/Amazon_books_cleaned.csv")
+def clean_book_df(book_data):
+
+    # Convert to DataFrame and clean
+    book_df = pd.DataFrame(book_data)
+    book_df = book_df.dropna(axis=1, thresh=len(book_df)*2/3)
+    book_df = book_df.dropna(subset=['genre'])
+
+    # I need this line to read the genre column as a list
+    book_df['genre'] = book_df['genre'].apply(lambda x: ast.literal_eval(x) if isinstance(x, str) and x.startswith('[') else x)
+    return book_df
+
+book_df = clean_book_df(book_data)
 
 def explode_df(book_df):
+
     exploded_df = book_df.explode('genre')
     exploded_df = exploded_df.reset_index(drop=True)
     return exploded_df
 
 def recommend_by_total_rating(book_df, user_df, target_user_ID):
-    book_df = explode_df(book_df)
+    book_df_2 = explode_df(book_df)
     # First I need to access the user preferences
     user_preferences = ast.literal_eval(user_df.iloc[target_user_ID]["preferences"])
     # I need to filter the dataframe based on the user's preferences 
-    filtered_books = book_df[book_df['genre'].apply(lambda x: any(g in x for g in user_preferences))]
+    filtered_books = book_df_2[book_df_2['genre'].apply(lambda x: any(g in x for g in user_preferences))]
     # Sort by rating
     filtered_books = filtered_books.sort_values(by = 'rating', ascending=False)
     # Creates a list of the books read by the user
@@ -29,7 +44,7 @@ def recommend_by_total_rating(book_df, user_df, target_user_ID):
     authors = []
     titles = list(recommended_books.head(5)["title"])
     for i in titles:
-        authors.append(list(book_df[book_df["title"]== i]['author'])[0])
+        authors.append(list(book_df_2[book_df_2["title"]== i]['author'])[0])
     return titles, authors      
     
 
@@ -72,7 +87,7 @@ def find_similar_users(user_id, user_df):
     return sorted(similarities.items(), key=lambda x: x[1], reverse=True) 
 
 def recommend_books_by_users(book_df, user_df, user_id):
-    book_df = explode_df(book_df)
+    book_df_2 = explode_df(book_df)
     rating_matrix = ratings_matrix(user_df)
 
     similar_users = find_similar_users(user_id, user_df)[:5]
@@ -93,7 +108,7 @@ def recommend_books_by_users(book_df, user_df, user_id):
         authors=[]
         for i in recommendations.items():
             book = i[0]
-            author = book_df.loc[book_df['title'] == book, 'author'].iloc[0]
+            author = book_df_2.loc[book_df_2['title'] == book, 'author'].iloc[0]
             books.append(book)
             authors.append(author)
 
@@ -103,7 +118,5 @@ def recommend_books_by_users(book_df, user_df, user_id):
 
 
 print(user_df.iloc[3]["preferences"])
-recommended_books = recommend_books_by_users(book_df, user_df, 3)
-recommended_books_2 = recommend_by_total_rating(book_df, user_df,3)
-print(recommended_books)
-print(recommended_books_2)
+print(recommend_books_by_users(book_df, user_df, 3))
+print(recommend_by_total_rating(book_df, user_df,3))
