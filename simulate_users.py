@@ -1,4 +1,4 @@
-#%%
+
 import pandas as pd
 import numpy as np
 import faker
@@ -35,7 +35,7 @@ def random_book(df, genre):
     selected_book = genre_books.sample(1).iloc[0]  # Get a random book
     return selected_book["title"], selected_book["id"]
 
-#%%
+
 def random_person(df):
     """"Given a database that has to have these columns: 'genre', 'id', 'rating', 'book', returns a fake user history data."""
     #We need to create a list of all unique genres:
@@ -68,7 +68,6 @@ def random_person(df):
     dictionary ={"name": fake.name(), "age": np.random.randint(12,85), "preferences": preferences, "book_history": book_history}
     return dictionary
 
-#%%
 def user_data(n):
     """Creates a dataframe of length n."""
     df =  pd.DataFrame({i: random_person(exploded_df) for i in range(n)}).T
