@@ -183,10 +183,10 @@ def recommend_books_for_user(user_id):
         return
     user_df = pd.read_csv("users.csv")
 
-    if not os.path.isfile("Cleaned Data/Amazon_books_cleaned.csv"):
+    if not os.path.isfile("Amazon_books_cleaned.csv"):
         print("No Amazon_books_cleaned.csv found, cannot recommend.")
         return
-    book_data = pd.read_csv("Cleaned Data/Amazon_books_cleaned.csv")
+    book_data = pd.read_csv("Amazon_books_cleaned.csv")
 
     # The existing function expects 'target_user_ID' to be the row index in user_df
     # So let's parse user_id as int, but that won't help if user_id=500 but the row is actually at index=0
