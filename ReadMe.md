@@ -1,5 +1,5 @@
 # The BibliOracle
-![BibliOracle](https://github.com/julietawenger/Hackaton1/raw/main/The%20Biblioracle2.png)
+![BibliOracle](https://github.com/julietawenger/Hackaton1/raw/main/The%20Biblioracle4.jpg)
 
 
 ## Overview
