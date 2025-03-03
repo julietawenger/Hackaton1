@@ -281,12 +281,12 @@ def surprise_me():
     """
     Print 3 random books from 'Amazon_books_cleaned.csv'.
     """
-    if not os.path.isfile("Cleaned Data/Amazon_books_cleaned.csv"):
+    if not os.path.isfile("Amazon_books_cleaned.csv"):
         print("No Amazon_books_cleaned.csv found. Cannot surprise you.")
         return
 
     import pandas as pd
-    df = pd.read_csv("Cleaned Data/Amazon_books_cleaned.csv")
+    df = pd.read_csv("Amazon_books_cleaned.csv")
     if df.empty:
         print("No books in the DB yet.")
         return
