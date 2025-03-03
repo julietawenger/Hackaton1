@@ -1,5 +1,6 @@
 # The BibliOracle
-https://file+.vscode-resource.vscode-cdn.net/c%3A/Users/Pinhas/Downloads/DALL%C2%B7E%202025-03-03%2003.43.14%20-%20A%20sleek%20and%20modern%20app%20icon%20for%20%27BibliOracle%27.%20The%20design%20should%20feature%20an%20open%20book%20with%20glowing%2C%20mystical%20pages%2C%20symbolizing%20knowledge%20and%20wisdom.%20.webp?version%3D1740966226384
+![BibliOracle](https://github.com/julietawenger/Hackaton1/raw/main/The%20Biblioracle2.png)
+
 
 ## Overview
 BibliOracle is a **book recommendation system** that helps users find their next great read based on their preferences and reading history. This system includes:
