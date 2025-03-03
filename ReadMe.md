@@ -1,5 +1,6 @@
 # The BibliOracle
-![BibliOracle](./The Biblioracle2.png)
+![BibliOracle](https://github.com/julietawenger/Hackaton1/raw/main/The%20Biblioracle2.png)
+
 
 ## Overview
 BibliOracle is a **book recommendation system** that helps users find their next great read based on their preferences and reading history. This system includes:
